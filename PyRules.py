@@ -1,6 +1,6 @@
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, ITab
 
-from javax.swing import JScrollPane, JTextPane, JTextArea, JSplitPane, BoxLayout, JPanel, JLabel, JButton, JCheckBox, GroupLayout, LayoutStyle, JScrollBar 
+from javax.swing import JScrollPane, JTextPane, JTextArea, JSplitPane, BoxLayout, JPanel, JLabel, JButton, JCheckBox, GroupLayout, LayoutStyle, JScrollBar
 from javax.swing.text import SimpleAttributeSet
 from java.awt import Font, Color, FlowLayout, Desktop
 from java.awt.event import FocusListener, ActionListener, MouseAdapter
@@ -16,37 +16,37 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 	_name = "PyRules"
 	_varsStorage = _name+"_vars"
 	_scriptStorage = _name+"_script"
-	
+
 	_enabled = 0
 	_vars = {}
 
 	def registerExtenderCallbacks(self, callbacks):
-		print "Load:"+self._name +" "+self._version 
-		
+		print "Load:"+self._name +" "+self._version
+
 		self.callbacks = callbacks
 		self.helpers = callbacks.helpers
-		
+
 		#Create Tab layout
 		self.jVarsPane = JTextPane()
 		self.jVarsPane.setFont(Font('Monospaced', Font.PLAIN, 11))
 		self.jVarsPane.addFocusListener(self)
-		
+
 		self.jMenuPanel = JPanel()
 		self.jLeftUpPanel = JPanel()
-		
-		self.jEnable = JCheckBox()	
+
+		self.jEnable = JCheckBox()
 		self.jEnable.setFont(Font('Monospaced', Font.BOLD, 11))
 		self.jEnable.setForeground(Color(0, 0, 204))
 		self.jEnable.setText(self._name)
 		self.jEnable.addActionListener(self)
-		
+
 		self.jDocs = JLabel()
 		self.jDocs.setFont(Font('Monospaced', Font.PLAIN, 11))
 		self.jDocs.setForeground(Color(51, 102, 255))
 		self.jDocs.setText(Strings.docs_titel)
 		self.jDocs.setToolTipText(Strings.docs_tooltip)
 		self.jDocs.addMouseListener(self)
-		
+
 		self.jConsoleText = JTextArea()
 		self.jConsoleText.setFont(Font('Monospaced', Font.PLAIN, 10))
 		self.jConsoleText.setBackground(Color(244, 246, 247))
@@ -57,7 +57,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 		self.jScrollConsolePane.setViewportView(self.jConsoleText)
 		#set initial text
 		self.jConsoleText.setText(Strings.console_disable)
-		
+
 		self.jMenuPanelLayout = GroupLayout(self.jMenuPanel)
 		self.jMenuPanel.setLayout(self.jMenuPanelLayout)
 		self.jMenuPanelLayout.setHorizontalGroup(
@@ -67,7 +67,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 				.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 205, 32767)
 				.addComponent(self.jDocs))
 		)
-		
+
 		self.jMenuPanelLayout.setVerticalGroup(
 			self.jMenuPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
 			.addGroup(self.jMenuPanelLayout.createSequentialGroup()
@@ -76,8 +76,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 					.addComponent(self.jDocs))
 				.addGap(0, 7, 32767))
 		)
-		
-		self.jConsolePane = JPanel()		
+
+		self.jConsolePane = JPanel()
 		self.jConsoleLayout = GroupLayout(self.jConsolePane)
 		self.jConsolePane.setLayout(self.jConsoleLayout)
 		self.jConsoleLayout.setHorizontalGroup(
@@ -103,26 +103,26 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 				.addComponent(self.jMenuPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 				.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
 				.addComponent(self.jConsolePane, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, 32767))
-		)		
-		
+		)
+
 		self.jScrollpaneLeftDown = JScrollPane()
 		self.jScrollpaneLeftDown.setViewportView(self.jVarsPane)
-		
+
 		self.jSplitPaneLeft = JSplitPane(JSplitPane.VERTICAL_SPLIT, self.jLeftUpPanel, self.jScrollpaneLeftDown)
-		self.jSplitPaneLeft.setDividerLocation(300);		
-		
+		self.jSplitPaneLeft.setDividerLocation(300);
+
 		self.jScriptPane = JTextPane()
 		self.jScriptPane.setFont(Font('Monospaced', Font.PLAIN, 11))
 		self.jScriptPane.addMouseListener(self)
-		
+
 		self.JScrollPaneRight = JScrollPane()
 		self.JScrollPaneRight.setViewportView(self.jScriptPane)
-		
+
 		self.jSplitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, self.jSplitPaneLeft, self.JScrollPaneRight)
 		self.jSplitPane.setDividerLocation(400);
-		
-		
-		#Load saved saved settings		
+
+
+		#Load saved saved settings
 		##Load vars
 		vars = callbacks.loadExtensionSetting( self._varsStorage )
 		if vars:
@@ -135,18 +135,21 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 			# load the default text
 			except:
 				vars = Strings.vars
-		
+
 		## initiate the persistant variables
 		locals_ = {}
-		exec(vars, {}, locals_)
+		try:
+			exec(vars, {}, locals_)
+		except Exception as e:
+			print e
 		self._vars = locals_
-		
+
 		## update the vars screen
 		self.jVarsPane.document.insertString(
 			self.jVarsPane.document.length,
 			vars,
 			SimpleAttributeSet())
-		
+
 		##Load script
 		script = callbacks.loadExtensionSetting( self._scriptStorage )
 		if script:
@@ -159,17 +162,22 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 			# load the default text
 			except:
 				script = Strings.script
-		
+
 		## compile the rules
 		self._script = script
-		self._code = compile(script, '<string>', 'exec')
-		
+		self._code = ''
+
+		try:
+			self._code = compile(script, '<string>', 'exec')
+		except Exception as e:
+			print('{}\nReload extension after you correct the error.'.format(e))
+
 		## update the rules screen
 		self.jScriptPane.document.insertString(
 			self.jScriptPane.document.length,
 			script,
 			SimpleAttributeSet())
-		
+
 
 		#Register Extension
 		callbacks.customizeUiComponent(self.getUiComponent())
@@ -181,10 +189,10 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 
 	def getUiComponent(self):
 		return self.jSplitPane
-		
+
 	def getTabCaption(self):
 		return self._name
-	
+
 	def actionPerformed(self, event):
 		#Check box was clicked
 		if self.jEnable == event.getSource():
@@ -200,39 +208,39 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 				self.jConsoleText.append(Strings.extra_line)
 				self.jConsoleText.append(Strings.console_log)
 		return
-		
+
 	def mouseClicked(self, event):
 		if event.source == self.jDocs:
 			uri = URI.create("https://github.com/DanNegrea/PyRules")
 			if uri and Desktop.isDesktopSupported() and Desktop.getDesktop().isSupported(Desktop.Action.BROWSE):
 				Desktop.getDesktop().browse(uri)
 		return
-		
+
 	def focusGained(self, event):
-		
+
 		if self.jConsolePane == event.getSource():
 			pass
 			#print "Status pane gained focus" #debug
 		return
-	
+
 	def focusLost(self, event):
 		#Reinitialize the persistent values
 		if self.jVarsPane == event.getSource():
 			# get the text from the pane
 			end = self.jVarsPane.document.length
 			vars= self.jVarsPane.document.getText(0, end)
-			
+
 			# compute the new values
 			locals_ = {}
 			exec(vars, {}, locals_)
 			self._vars = locals_
-			
+
 			# display the new result in console
 			self.jConsoleText.append(Strings.console_state)
 			self.jConsoleText.append(pformat(self._vars))
 			self.jConsoleText.append(Strings.extra_line)
 			self.jConsoleText.append(Strings.console_log)
-			
+
 			# scroll to bottom
 			verticalScrollBar = self.jScrollConsolePane.getVerticalScrollBar()
 			verticalScrollBar.setValue( verticalScrollBar.getMaximum() )
@@ -256,12 +264,12 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 		print "Unloaded" #debug
 		return
 
-	
+
 	def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
 		if self._enabled==0:
 			return
-	
-		try:	
+
+		try:
 			locals_  = {'extender': self,
 						'callbacks': self.callbacks,
 						'helpers': self.helpers,
@@ -272,14 +280,14 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 						}
 			# add the _vars as gloval variables
 			locals_= dict(locals_, **self._vars);
-			
+
 			# execute the script/rules
 			try:
 				exec(self.getCode, {}, locals_)
 			# catch exit() call inside the rule
 			except SystemExit:
 				pass
-			
+
 			# update the persistant variables by searching the local variables with the same name
 			for key in self._vars:
 				# assumption self._vars dictionary is smaller than locals_
@@ -294,12 +302,12 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 	def getCode(self):
 		end = self.jScriptPane.document.length
 		script = self.jScriptPane.document.getText(0, end)
-		
+
 		# if the script hasn't changed return the already compile text
 		if script == self._script:
 			return self._code
 		self._script = script
-		
+
 		# compile, store and return the result
 		self._code = compile(script, '<string>', 'exec')
 		return self._code
@@ -315,20 +323,20 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener, ITab, 
 		verticalScrollBar = self.jScrollConsolePane.getVerticalScrollBar()
 		verticalScrollBar.setValue( verticalScrollBar.getMaximum() )
 		return
-		
+
 class Strings(object):
 	docs_titel = "Docs & Examples"
 	docs_tooltip = "See the documentation & snippets"
 
 	console_state = "#State\n"
-	console_log = "#Logged data\n"	
+	console_log = "#Logged data\n"
 	extra_line = "\n\n"
 
 	console_disable = """
 With PyRules you can write Python to create rules:
 * that modifiy the requests and responses,
 * while maintaining some state between calls.
-  
+
 Start by declaring the persistant variables (below)
 and continue with defining the rules (right).
 Set the plugin in motion using the checkbox (top left).
